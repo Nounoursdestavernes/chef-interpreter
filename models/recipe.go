@@ -25,8 +25,7 @@ type MethodStatement struct {
 	BakingDish int
 	Minutes    int
 	Hours      int
-	VerbStart  string
-	VerbEnd    string
+	Verb       string
 	Recipe     string
 }
 

@@ -9,6 +9,12 @@ import (
 )
 
 func tokenizeMethod(input string) (method []models.MethodStatement, err error) {
+	if !strings.HasPrefix(input, "Method") {
+		fmt.Println(input)
+		return []models.MethodStatement{}, fmt.Errorf("could not find Method field")
+	}
+
+	input = strings.Replace(input, "Method.\n", "", 1)
 	statements := strings.SplitAfter(input, ".")
 
 	for _, statement := range statements {
@@ -40,7 +46,24 @@ func tokenizeMethod(input string) (method []models.MethodStatement, err error) {
 		}
 	}
 
+	printMethod(method)
+
 	return method, nil
+}
+
+func printMethod(method []models.MethodStatement) {
+	for _, statement := range method {
+		fmt.Printf("OPCODE: %d\n\tINGREDIENT: %s\n\tMIXING BOWL: %d\n\tBAKING DISH: %d\n\tMINUTES: %d\n\tHOURS: %d\n\tVERB: %s\n\tRECIPE: %s\n\n",
+			statement.Command,
+			statement.Ingredient,
+			statement.MixingBowl,
+			statement.BakingDish,
+			statement.Minutes,
+			statement.Hours,
+			statement.Verb,
+			statement.Recipe,
+		)
+	}
 }
 
 func populateMethodStatement(command models.Command, fieldNames []string, fieldValues []string) (methodStatement models.MethodStatement, err error) {
@@ -58,10 +81,8 @@ func populateMethodStatement(command models.Command, fieldNames []string, fieldV
 			methodStatement.Minutes, _ = strconv.Atoi(fieldValues[field]) // TODO: errors possible here?
 		case "hours":
 			methodStatement.Hours, _ = strconv.Atoi(fieldValues[field]) // TODO: errors possible here?
-		case "verbstart":
-			methodStatement.VerbStart = fieldValues[field]
-		case "verbend":
-			methodStatement.VerbEnd = fieldValues[field]
+		case "verb":
+			methodStatement.Verb = fieldValues[field]
 		case "recipe":
 			methodStatement.Recipe = fieldValues[field]
 		}
@@ -77,23 +98,23 @@ type commandOption struct {
 
 var commandOptions = [...]commandOption{
 	{
-		regexp:  regexp.MustCompile("^Take (?P<ingredient>[A-Za-z ]*?) from refrigerator.$"),
+		regexp:  regexp.MustCompile("^Take (?P<ingredient>[A-Za-z ]*?) from(?: the|) refrigerator.$"),
 		command: models.CommandTake,
 	},
 	{
-		regexp:  regexp.MustCompile("^Put (?P<ingredient>[A-Za-z ]*) into(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
+		regexp:  regexp.MustCompile("^Put (?P<ingredient>[A-Za-z ]*) into(?: the|)(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
 		command: models.CommandPut,
 	},
 	{
-		regexp:  regexp.MustCompile("^Fold (?P<ingredient>[A-Za-z ]*) into(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
+		regexp:  regexp.MustCompile("^Fold (?P<ingredient>[A-Za-z ]*) into(?: the|)(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
 		command: models.CommandFold,
 	},
 	{
-		regexp:  regexp.MustCompile("^Add dry ingredients(?: to(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl|).$"),
+		regexp:  regexp.MustCompile("^Add dry ingredients(?: to(?: the|)(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl|).$"),
 		command: models.CommandAddDry,
 	},
 	{
-		regexp:  regexp.MustCompile("^Add (?P<ingredient>[A-Za-z ]*) to(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
+		regexp:  regexp.MustCompile("^Add (?P<ingredient>[A-Za-z ]*) to(?: the|)(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
 		command: models.CommandAdd,
 	},
 	{
@@ -101,7 +122,7 @@ var commandOptions = [...]commandOption{
 		command: models.CommandAdd,
 	},
 	{
-		regexp:  regexp.MustCompile("^Remove (?P<ingredient>[A-Za-z ]*) from(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
+		regexp:  regexp.MustCompile("^Remove (?P<ingredient>[A-Za-z ]*) from(?: the|)(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
 		command: models.CommandRemove,
 	},
 	{
@@ -109,7 +130,7 @@ var commandOptions = [...]commandOption{
 		command: models.CommandRemove,
 	},
 	{
-		regexp:  regexp.MustCompile("^Combine (?P<ingredient>[A-Za-z ]*) into(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
+		regexp:  regexp.MustCompile("^Combine (?P<ingredient>[A-Za-z ]*) into(?: the|)(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
 		command: models.CommandCombine,
 	},
 	{
@@ -117,7 +138,7 @@ var commandOptions = [...]commandOption{
 		command: models.CommandCombine,
 	},
 	{
-		regexp:  regexp.MustCompile("^Divide (?P<ingredient>[A-Za-z ]*) into(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
+		regexp:  regexp.MustCompile("^Divide (?P<ingredient>[A-Za-z ]*) into(?: the|)(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
 		command: models.CommandDivide,
 	},
 	{
@@ -125,15 +146,15 @@ var commandOptions = [...]commandOption{
 		command: models.CommandDivide,
 	},
 	{
-		regexp:  regexp.MustCompile("^Liquefy contents of the(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
+		regexp:  regexp.MustCompile("^Liqu[ei]fy(?: the|) contents of the(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
 		command: models.CommandLiquefyBowl,
 	},
 	{
-		regexp:  regexp.MustCompile("^Liquefy (?P<ingredient>[A-Za-z ]*).$"),
+		regexp:  regexp.MustCompile("^Liqu[ei]fy(?: the|) (?P<ingredient>[A-Za-z ]*).$"),
 		command: models.CommandLiquefyIngredient,
 	},
 	{
-		regexp:  regexp.MustCompile("^Stir(?: the(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl|) for (?P<minutes>[0-9]*) minutes.$"),
+		regexp:  regexp.MustCompile("^Stir(?: the(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl|) for (?P<minutes>[0-9]*) minute(?:s|).$"),
 		command: models.CommandStirBowl,
 	},
 	{
@@ -145,7 +166,7 @@ var commandOptions = [...]commandOption{
 		command: models.CommandMix,
 	},
 	{
-		regexp:  regexp.MustCompile("^Clean(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
+		regexp:  regexp.MustCompile("^Clean(?: the|)(?: (?P<bowl>[0-9]*)(?:st|nd|rd|th)|) mixing bowl.$"),
 		command: models.CommandClean,
 	},
 	{
@@ -161,15 +182,15 @@ var commandOptions = [...]commandOption{
 		command: models.CommandServe,
 	},
 	{
-		regexp:  regexp.MustCompile("^Refrigerate(?: for (?P<hours>[0-9]*) hours|).$"),
+		regexp:  regexp.MustCompile("^Refrigerate(?: for (?P<hours>[0-9]*) hour(?:s|)|).$"),
 		command: models.CommandRefrigerate,
 	},
 	{
-		regexp:  regexp.MustCompile("^(?P<verbstart>[A-Za-z ]*?)(?:e|y|) the (?P<ingredient>[A-Za-z ]*) until (?P<verbend>[A-Za-z ]*?)(?:ied|ed).$"),
+		regexp:  regexp.MustCompile("^(?:[A-Za-z ]*?)(?: the (?P<ingredient>[A-Za-z ]*)|) until (?P<verb>[A-Za-z ]*?)(?:ied|ed).$"),
 		command: models.CommandVerbEnd,
 	},
 	{
-		regexp:  regexp.MustCompile("^(?P<verbstart>[A-Za-z ]*?)(?:e|y|) the (?P<ingredient>[A-Za-z ]*).$"),
+		regexp:  regexp.MustCompile("^(?P<verb>[A-Za-z ]*?)(?:e|y|) the (?P<ingredient>[A-Za-z ]*).$"),
 		command: models.CommandVerbStart,
 	},
 }

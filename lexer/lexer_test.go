@@ -42,15 +42,14 @@ func TestTokenizeMethod(t *testing.T) {
 
 func printMethod(method []models.MethodStatement) {
 	for _, statement := range method {
-		fmt.Printf("OPCODE: %d\n\tINGREDIENT: %s\n\tMIXING BOWL: %d\n\tBAKING DISH: %d\n\tMINUTES: %d\n\tHOURS: %d\n\tVERB START: %s\n\tVERB END: %s\n\tRECIPE: %s\n\n",
+		fmt.Printf("OPCODE: %d\n\tINGREDIENT: %s\n\tMIXING BOWL: %d\n\tBAKING DISH: %d\n\tMINUTES: %d\n\tHOURS: %d\n\tVERB START: %s\n\tRECIPE: %s\n\n",
 			statement.Command,
 			statement.Ingredient,
 			statement.MixingBowl,
 			statement.BakingDish,
 			statement.Minutes,
 			statement.Hours,
-			statement.VerbStart,
-			statement.VerbEnd,
+			statement.Verb,
 			statement.Recipe,
 		)
 	}
