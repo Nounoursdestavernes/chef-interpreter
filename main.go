@@ -1,7 +1,7 @@
 package main
 
 import (
-	"ChefInterpreter/lexer"
+	lexerPkg "ChefInterpreter/lexer"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,6 +16,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	lexer := lexerPkg.New()
 	recipe, err := lexer.Tokenize(input)
 	if err != nil {
 		log.Fatal(err)

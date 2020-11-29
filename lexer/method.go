@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func tokenizeMethod(input string) (method []models.MethodStatement, err error) {
+func (l Lexer) tokenizeMethod(input string) (method []models.MethodStatement, err error) {
 	if !strings.HasPrefix(input, "Method") {
 		fmt.Println(input)
 		return []models.MethodStatement{}, fmt.Errorf("could not find Method field")
@@ -26,12 +26,12 @@ func tokenizeMethod(input string) (method []models.MethodStatement, err error) {
 		isValid := false
 
 		for _, command := range commandOptions {
-			result := command.regexp.FindStringSubmatch(statement)
+			tokens := command.regexp.FindStringSubmatch(statement)
 
-			if len(result) > 0 {
+			if len(tokens) > 0 {
 				isValid = true
 
-				methodStatement, err := populateMethodStatement(command.command, command.regexp.SubexpNames()[1:], result[1:])
+				methodStatement, err := populateMethodStatement(command.command, command.regexp.SubexpNames()[1:], tokens[1:])
 				if err != nil {
 					return []models.MethodStatement{}, err
 				}
@@ -46,8 +46,7 @@ func tokenizeMethod(input string) (method []models.MethodStatement, err error) {
 		}
 	}
 
-	printMethod(method)
-
+	l.markFieldComplete()
 	return method, nil
 }
 

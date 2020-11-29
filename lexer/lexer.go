@@ -3,18 +3,32 @@ package lexer
 import (
 	"ChefInterpreter/models"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
-func Tokenize(input string) (recipe models.Recipe, err error) {
-	recipe, remainingInput, err := tokenizeSingleRecipe(input)
+type Lexer struct {
+	fields     []string
+	fieldIndex int
+}
+
+func New() Lexer {
+	return Lexer{}
+}
+
+func (l Lexer) Tokenize(input string) (recipe models.Recipe, err error) {
+	l.fields = strings.Split(input, "\n\n")
+	l.fieldIndex = 0
+
+	recipe, err = l.tokenizeSingleRecipe()
 	if err != nil {
 		return models.Recipe{}, err
 	}
 
-	for len(remainingInput) > 0 {
+	for l.fieldIndex < len(l.fields) {
 		nextRecipe := models.Recipe{}
-		nextRecipe, remainingInput, err = tokenizeSingleRecipe(remainingInput)
+		nextRecipe, err = l.tokenizeSingleRecipe()
 		if err != nil {
 			return models.Recipe{}, err
 		}
@@ -25,86 +39,120 @@ func Tokenize(input string) (recipe models.Recipe, err error) {
 	return recipe, nil
 }
 
-func tokenizeTitle(input string) (title string, err error) {
+func (l Lexer) tokenizeSingleRecipe() (recipe models.Recipe, err error) {
+	// title
+	recipe.Title, err = l.tokenizeTitle(l.getNextField())
+	if err != nil {
+		return models.Recipe{}, err
+	}
+
+	// comments
+	recipe.Comments, _ = l.tokenizeComments(l.getNextField())
+
+	// ingredients
+	recipe.Ingredients, err = l.tokenizeIngredients(l.getNextField())
+	if err != nil {
+		return models.Recipe{}, err
+	}
+
+	// cooking time
+	recipe.CookingTime, err = l.tokenizeCookingTime(l.getNextField())
+	if err != nil {
+		return models.Recipe{}, err
+	}
+
+	// pre-heat
+	recipe.OvenTemperature, recipe.GasMark, err = l.tokenizePreheat(l.getNextField())
+	if err != nil {
+		return models.Recipe{}, err
+	}
+
+	// method
+	recipe.Method, err = l.tokenizeMethod(l.getNextField())
+	if err != nil {
+		return models.Recipe{}, err
+	}
+
+	// serves
+	recipe.Serves, err = l.tokenizeServes(l.getNextField())
+	if err != nil {
+		return models.Recipe{}, err
+	}
+
+	return recipe, nil
+}
+
+func (l Lexer) tokenizeTitle(input string) (title string, err error) {
 	if !strings.HasSuffix(input, ".") {
 		return "", fmt.Errorf("could not find Title field")
 	}
 
+	l.markFieldComplete()
 	return input, nil
 }
 
-func tokenizeComments(input string) (comments string, err error) {
+func (l Lexer) tokenizeComments(input string) (comments string, err error) {
+	if strings.HasPrefix(input, "Ingredients.") {
+		return "", nil
+	}
+
+	l.markFieldComplete()
 	return input, nil
 }
 
-func tokenizeCookingTime(input string) (cookingTime int, err error) {
-	// TODO: handle
-	return
+func (l Lexer) tokenizeCookingTime(input string) (cookingTime int, err error) {
+	if !strings.HasPrefix(input, "Cooking time:") {
+		return 0, nil
+	}
+
+	tokens := regexp.MustCompile("^Cooking time: ([0-9]*) (?:hour|hours|minute|minutes).$").FindStringSubmatch(input)
+	if len(tokens) == 0 {
+		return 0, fmt.Errorf("invalid cooking time statement: %s", input)
+	}
+
+	cookingTime, _ = strconv.Atoi(tokens[1])
+
+	l.markFieldComplete()
+	return cookingTime, nil
 }
 
-func tokenizePreheat(input string) (ovenTemperature, gasMark int, err error) {
-	// TODO: handle
-	return
+func (l Lexer) tokenizePreheat(input string) (ovenTemperature, gasMark int, err error) {
+	if !strings.HasPrefix(input, "Pre-heat") {
+		return 0, 0, nil
+	}
+
+	tokens := regexp.MustCompile("^Pre-heat oven to ([0-9]*) degrees (?:Celsius|Fahrenheit)(?: \\(gas mark ([0-9]*)\\)|).$").FindStringSubmatch(input)
+	if len(tokens) == 0 {
+		return 0, 0, fmt.Errorf("invalid preheat statement: %s", input)
+	}
+
+	ovenTemperature, _ = strconv.Atoi(tokens[1])
+	ovenTemperature, _ = strconv.Atoi(tokens[2])
+
+	l.markFieldComplete()
+	return ovenTemperature, gasMark, nil
 }
 
-func tokenizeServes(input string) (serves int, err error) {
-	// TODO: handle
-	return
+func (l Lexer) tokenizeServes(input string) (serves int, err error) {
+	if !strings.HasPrefix(input, "Serves") {
+		return 0, nil
+	}
+
+	tokens := regexp.MustCompile("^Serves ([0-9]*).$").FindStringSubmatch(input)
+	if len(tokens) == 0 {
+		return 0, fmt.Errorf("invalid serves statement: %s", input)
+	}
+
+	serves, _ = strconv.Atoi(tokens[1])
+
+	l.markFieldComplete()
+	return serves, nil
 }
 
-func tokenizeSingleRecipe(input string) (recipe models.Recipe, remainingInput string, err error) {
-	fields := strings.Split(input, "\n\n")
-	fieldIndex := 0
+func (l Lexer) getNextField() string {
+	return l.fields[l.fieldIndex]
+}
 
-	// title
-	recipe.Title, err = tokenizeTitle(fields[fieldIndex])
-	if err != nil {
-		remainingInput = strings.Join(fields[fieldIndex+1:], "\n\n")
-		return models.Recipe{}, remainingInput, err
-	}
-	fieldIndex++
-
-	// comments
-	if !strings.HasPrefix(fields[fieldIndex], "Ingredients.") {
-		recipe.Comments, _ = tokenizeComments(fields[fieldIndex])
-		fieldIndex++
-	}
-
-	// ingredients
-	recipe.Ingredients, err = tokenizeIngredients(fields[fieldIndex])
-	if err != nil {
-		remainingInput = strings.Join(fields[fieldIndex+1:], "\n\n")
-		return models.Recipe{}, remainingInput, err
-	}
-	fieldIndex++
-
-	// cooking time
-	if strings.HasPrefix(fields[fieldIndex], "Cooking time:") {
-		recipe.CookingTime, _ = tokenizeCookingTime(fields[fieldIndex])
-		fieldIndex++
-	}
-
-	// pre-heat
-	if strings.HasPrefix(fields[fieldIndex], "Pre-heat") {
-		recipe.OvenTemperature, recipe.GasMark, _ = tokenizePreheat(fields[fieldIndex])
-		fieldIndex++
-	}
-
-	// method
-	recipe.Method, err = tokenizeMethod(fields[fieldIndex])
-	if err != nil {
-		remainingInput = strings.Join(fields[fieldIndex+1:], "\n\n")
-		return models.Recipe{}, remainingInput, err
-	}
-	fieldIndex++
-
-	// serves
-	if fieldIndex < len(fields) && strings.HasPrefix(fields[fieldIndex], "Serves") {
-		recipe.Serves, _ = tokenizeServes(fields[fieldIndex])
-		fieldIndex++
-	}
-
-	remainingInput = strings.Join(fields[fieldIndex:], "\n\n")
-	remainingInput = strings.TrimSpace(remainingInput)
-	return recipe, remainingInput, nil
+func (l Lexer) markFieldComplete() {
+	l.fieldIndex++
 }

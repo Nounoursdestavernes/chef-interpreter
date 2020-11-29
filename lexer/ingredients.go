@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func tokenizeIngredients(input string) (ingredients []models.Ingredient, err error) {
+func (l Lexer) tokenizeIngredients(input string) (ingredients []models.Ingredient, err error) {
 	if !strings.HasPrefix(input, "Ingredients.") {
 		return []models.Ingredient{}, fmt.Errorf("could not find Ingredients field")
 	}
@@ -16,22 +16,22 @@ func tokenizeIngredients(input string) (ingredients []models.Ingredient, err err
 	input = strings.Replace(input, "Ingredients.\n", "", 1)
 	list := strings.Split(input, "\n")
 	for _, item := range list {
-		result := ingredientRegexp.FindStringSubmatch(item)
-		if len(result) == 0 {
+		tokens := ingredientRegexp.FindStringSubmatch(item)
+		if len(tokens) == 0 {
 			return []models.Ingredient{}, fmt.Errorf("invalid ingredient: %s", item)
 		}
 
 		ingredient := models.Ingredient{}
-		ingredient.Name = result[4]
-		ingredient.Amount, _ = strconv.Atoi(result[1]) // TODO: errors possible here?
+		ingredient.Name = tokens[4]
+		ingredient.Amount, _ = strconv.Atoi(tokens[1]) // TODO: errors possible here?
 
-		switch result[3] {
+		switch tokens[3] {
 		case "g", "kg", "pinch":
 			ingredient.IsDry = true
 		case "ml", "l", "dash":
 			ingredient.IsDry = false
 		case "cup", "teaspoon", "tablespoon":
-			if result[2] == "heaped" || result[2] == "level" {
+			if tokens[2] == "heaped" || tokens[2] == "level" {
 				ingredient.IsDry = true
 			} else {
 				ingredient.IsDry = false
@@ -41,6 +41,7 @@ func tokenizeIngredients(input string) (ingredients []models.Ingredient, err err
 		ingredients = append(ingredients, ingredient)
 	}
 
+	l.markFieldComplete()
 	return ingredients, nil
 }
 
