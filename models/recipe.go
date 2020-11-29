@@ -13,9 +13,9 @@ type Recipe struct {
 }
 
 type Ingredient struct {
-	Name  string
-	Value int
-	IsDry bool
+	Name   string
+	Amount int
+	IsDry  bool
 }
 
 type MethodStatement struct {
