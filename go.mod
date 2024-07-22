@@ -1,4 +1,4 @@
-module ChefInterpreter
+module github.com/Nounoursdestavernes/chef-interpreter
 
 go 1.14
 
