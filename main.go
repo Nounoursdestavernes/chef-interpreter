@@ -1,7 +1,7 @@
 package main
 
 import (
-	lexerPkg "ChefInterpreter/lexer"
+	lexerPkg "github.com/Nounoursdestavernes/chef-interpreter/lexer"
 	"fmt"
 	"io/ioutil"
 	"log"
