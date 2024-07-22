@@ -1,7 +1,7 @@
 package lexer
 
 import (
-	"ChefInterpreter/models"
+	"github.com/Nounoursdestavernes/chef-interpreter/models"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
